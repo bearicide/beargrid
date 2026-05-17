@@ -1,0 +1,1 @@
+window.BearGridMixer=(function(){const channels={};function channel(id){channels[id]=channels[id]||{volume:1,pan:0,muted:false};return channels[id]}function setVolume(id,v){channel(id).volume=Math.max(0,Math.min(1,v))}function mute(id,v=true){channel(id).muted=v}function get(id){return channel(id)}return{channels,setVolume,mute,get}})();
