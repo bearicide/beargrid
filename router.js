@@ -1,0 +1,1 @@
+window.BearGridRouter=(function(){const routes=[];function connect(from,to){routes.push({from,to})}function send(from,data){routes.filter(r=>r.from===from).forEach(r=>{document.dispatchEvent(new CustomEvent('beargrid-route-'+r.to,{detail:data}))})}return{routes,connect,send}})();
