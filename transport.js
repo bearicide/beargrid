@@ -1,0 +1,1 @@
+window.BearGridTransport=(function(){let bpm=96,playing=false,subs=[];function start(){playing=true;tick()}function stop(){playing=false}function tick(){if(!playing)return;subs.forEach(fn=>fn());setTimeout(tick,60000/bpm/4)}function subscribe(fn){subs.push(fn)}function setBpm(v){bpm=v}return{start,stop,subscribe,setBpm}})();
