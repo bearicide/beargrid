@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BearGrid | MATTBEAR</title>
+<meta name="description" content="BearGrid — a clean blank-white MATTBEAR music toy index.">
+<meta name="theme-color" content="#ffffff">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#fff;color:#111;font-family:Bahnschrift,'Arial Narrow',Arial,sans-serif}
+a{color:#111;text-decoration:none}
+.wrap{width:min(1040px,calc(100% - 28px));margin:0 auto}
+header{border-bottom:1px solid #ddd;background:#fff}
+nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;flex-wrap:wrap}
+.brand{font-weight:900;text-transform:uppercase;letter-spacing:.08em;font-size:1.15rem}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.btn,.links a{border:1px solid #111;border-radius:14px;padding:10px 14px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;background:#fff;display:inline-flex;align-items:center;justify-content:center;min-height:42px}
+.btn:hover,.links a:hover{background:#111;color:#fff}
+main{padding:44px 0 26px}
+.hero{border:1px solid #111;border-radius:24px;padding:26px;background:#fff}
+h1{margin:0;font-size:clamp(3rem,9vw,7rem);line-height:.85;text-transform:uppercase;letter-spacing:-.05em}
+p{color:#555;line-height:1.55;font-size:1.05rem;max-width:760px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:24px}.pad{aspect-ratio:1;border:1px solid #111;border-radius:18px;background:#fff;display:grid;place-items:center;font-weight:900;cursor:pointer;user-select:none;touch-action:manipulation}.pad:active,.pad.on{background:#111;color:#fff}.section{padding:18px 0}.panel{border:1px solid #ddd;border-radius:20px;padding:18px;background:#fff}.panel h2{margin:0 0 8px;text-transform:uppercase}.footer{border-top:1px solid #ddd;margin-top:24px;padding:24px 0 38px;text-align:center;color:#555}.footer-links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}@media(max-width:720px){.grid{grid-template-columns:repeat(4,1fr);gap:7px}.pad{border-radius:12px}.btn,.links a{width:100%}.links{width:100%;display:grid}h1{font-size:clamp(2.8rem,17vw,5.8rem)}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><nav><a class="brand" href="./" aria-current="page">BearGrid</a><div class="links"><a href="https://bearicide.github.io/">Main</a><a href="https://bearicide.github.io/music-toys/">Music Toys</a><a href="https://bearicide.github.io/examples/">Examples</a></div></nav></div></header>
+<main class="wrap">
+<section class="hero">
+<h1>BearGrid</h1>
+<p>Blank white build page for the BearGrid music toy. Clean first, loud later. Touch, mouse, and keyboard-friendly grid foundation.</p>
+<div class="grid" aria-label="BearGrid pad demo">
+<button class="pad">1</button><button class="pad">2</button><button class="pad">3</button><button class="pad">4</button>
+<button class="pad">5</button><button class="pad">6</button><button class="pad">7</button><button class="pad">8</button>
+<button class="pad">Q</button><button class="pad">W</button><button class="pad">E</button><button class="pad">R</button>
+<button class="pad">A</button><button class="pad">S</button><button class="pad">D</button><button class="pad">F</button>
+</div>
+</section>
+<section class="section"><div class="panel"><h2>Status</h2><p>Index is live-ready. README removed so the repo/page does not just auto-display “beargrid.”</p><a class="btn" href="https://github.com/bearicide/beargrid">Open Repo</a></div></section>
+</main>
+<footer class="footer wrap"><strong>BearGrid · MATTBEAR</strong><div class="footer-links"><a class="btn" href="https://bearicide.github.io/">Main</a><a class="btn" href="https://bearicide.github.io/beargrid/">Self</a><a class="btn" href="https://bearicide.github.io/music-toys/">Music Toys</a><a class="btn" href="https://bearicide.github.io/examples/">Examples</a></div></footer>
+<script>
+const pads=[...document.querySelectorAll('.pad')];
+const keys=['1','2','3','4','5','6','7','8','q','w','e','r','a','s','d','f'];
+pads.forEach((pad,i)=>pad.addEventListener('click',()=>pulse(i)));
+window.addEventListener('keydown',e=>{const i=keys.indexOf(e.key.toLowerCase());if(i>-1)pulse(i)});
+function pulse(i){const p=pads[i];p.classList.add('on');setTimeout(()=>p.classList.remove('on'),160)}
+</script>
+</body>
+</html>
