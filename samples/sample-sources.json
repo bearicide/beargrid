@@ -1,0 +1,58 @@
+{
+  "drum-machine": {
+    "category": "drums",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-167-free-processed-808-and-909-samples"
+  },
+  "looping-drum-loops": {
+    "category": "loops",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-167-free-processed-808-and-909-samples"
+  },
+  "op-1": {
+    "category": "synths",
+    "source": "https://www.musicradar.com/music-tech/samples/relive-the-golden-era-of-the-dx7-jupiter-8-and-prophet-v-with-this-mega-pack-of-free-80s-synth-samples"
+  },
+  "orchid": {
+    "category": "drones",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-196-free-spooky-samples"
+  },
+  "reese": {
+    "category": "bass",
+    "source": "https://www.musicradar.com/music-tech/samples/relive-the-golden-era-of-the-dx7-jupiter-8-and-prophet-v-with-this-mega-pack-of-free-80s-synth-samples"
+  },
+  "the-choppa": {
+    "category": "glitch",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-205-free-glitchy-textures-samples"
+  },
+  "sampla": {
+    "category": "glitch",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-205-free-glitchy-textures-samples"
+  },
+  "launcha": {
+    "category": "loops",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-167-free-processed-808-and-909-samples"
+  },
+  "mellotron": {
+    "category": "drones",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-196-free-spooky-samples"
+  },
+  "bit-crusher": {
+    "category": "fx",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-205-free-glitchy-textures-samples"
+  },
+  "fm-station": {
+    "category": "synths",
+    "source": "https://www.musicradar.com/music-tech/samples/relive-the-golden-era-of-the-dx7-jupiter-8-and-prophet-v-with-this-mega-pack-of-free-80s-synth-samples"
+  },
+  "delay-station": {
+    "category": "fx",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-303-free-organic-drone-samples"
+  },
+  "filter-station": {
+    "category": "fx",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-303-free-organic-drone-samples"
+  },
+  "master-fx": {
+    "category": "fx",
+    "source": "https://www.musicradar.com/music-tech/samples/sampleradar-303-free-organic-drone-samples"
+  }
+}
