@@ -2,33 +2,42 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BearGrid | MATTBEAR</title>
-<meta name="description" content="BearGrid — a clean blank-white MATTBEAR music toy index.">
+<meta name="description" content="BearGrid — a clean MATTBEAR grid-based music toy foundation with quantized pad behavior, mini-player, admin shell, and backend-ready tracking hooks.">
 <meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='26' fill='white'/%3E%3Cpath d='M24 34h80v60H24z' fill='none' stroke='black' stroke-width='8'/%3E%3Cpath d='M40 50h12v12H40zM58 50h12v12H58zM76 50h12v12H76zM40 68h12v12H40zM58 68h12v12H58zM76 68h12v12H76z' fill='black'/%3E%3C/svg%3E">
 <style>
+:root{--bg:#fff;--ink:#111;--muted:#555;--line:#ddd;--soft:#f6f6f6;--hot:#00e5ff;--pink:#ff2bd6;--green:#9cff00}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:#fff;color:#111;font-family:Bahnschrift,'Arial Narrow',Arial,sans-serif}
-a{color:#111;text-decoration:none}
-.wrap{width:min(1040px,calc(100% - 28px));margin:0 auto}
-header{border-bottom:1px solid #ddd;background:#fff}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:Bahnschrift,'Arial Narrow',Arial,sans-serif;text-rendering:optimizeLegibility}
+body{overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit}
+.wrap{width:min(1100px,calc(100% - 28px));margin:0 auto}
+header{position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line);background:rgba(255,255,255,.94);backdrop-filter:blur(12px)}
 nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;flex-wrap:wrap}
-.brand{font-weight:900;text-transform:uppercase;letter-spacing:.08em;font-size:1.15rem}
+.brand{font-weight:950;text-transform:uppercase;letter-spacing:.09em;font-size:1.12rem}
 .links{display:flex;gap:8px;flex-wrap:wrap}
-.btn,.links a{border:1px solid #111;border-radius:14px;padding:10px 14px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;background:#fff;display:inline-flex;align-items:center;justify-content:center;min-height:42px}
-.btn:hover,.links a:hover{background:#111;color:#fff}
-main{padding:44px 0 26px}
-.hero{border:1px solid #111;border-radius:24px;padding:26px;background:#fff}
-h1{margin:0;font-size:clamp(3rem,9vw,7rem);line-height:.85;text-transform:uppercase;letter-spacing:-.05em}
-p{color:#555;line-height:1.55;font-size:1.05rem;max-width:760px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:24px}.pad{aspect-ratio:1;border:1px solid #111;border-radius:18px;background:#fff;display:grid;place-items:center;font-weight:900;cursor:pointer;user-select:none;touch-action:manipulation}.pad:active,.pad.on{background:#111;color:#fff}.section{padding:18px 0}.panel{border:1px solid #ddd;border-radius:20px;padding:18px;background:#fff}.panel h2{margin:0 0 8px;text-transform:uppercase}.footer{border-top:1px solid #ddd;margin-top:24px;padding:24px 0 38px;text-align:center;color:#555}.footer-links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}@media(max-width:720px){.grid{grid-template-columns:repeat(4,1fr);gap:7px}.pad{border-radius:12px}.btn,.links a{width:100%}.links{width:100%;display:grid}h1{font-size:clamp(2.8rem,17vw,5.8rem)}}
+.btn,.links a{border:1px solid var(--ink);border-radius:14px;padding:10px 14px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;background:#fff;display:inline-flex;align-items:center;justify-content:center;min-height:42px;cursor:pointer}
+.btn:hover,.links a:hover,.btn:focus-visible,.links a:focus-visible{background:var(--ink);color:#fff;outline:0}
+main{padding:42px 0 28px}
+.hero{border:1px solid var(--ink);border-radius:26px;padding:clamp(20px,4vw,34px);background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.08)}
+.kicker{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-size:.8rem;text-transform:uppercase;font-weight:900;letter-spacing:.08em;background:var(--soft)}
+h1{margin:16px 0 0;font-size:clamp(3.2rem,10vw,7.8rem);line-height:.82;text-transform:uppercase;letter-spacing:-.06em}
+.rainbow{background:linear-gradient(90deg,#ff1a1a,#ff8c00,#ffe600,#46ff00,#00e5ff,#305cff,#b000ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 20px rgba(0,229,255,.12)}
+p{color:var(--muted);line-height:1.55;font-size:1.05rem;max-width:780px}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:24px}.pad{aspect-ratio:1;border:1px solid var(--ink);border-radius:18px;background:#fff;display:grid;place-items:center;font-weight:950;font-size:clamp(1rem,4vw,2rem);cursor:pointer;user-select:none;touch-action:manipulation;transition:transform .08s ease,background .12s ease,color .12s ease,box-shadow .12s ease}.pad:active,.pad.on{background:#111;color:#fff;transform:scale(.96);box-shadow:0 0 0 4px rgba(0,229,255,.16),0 0 26px rgba(255,43,214,.2)}.section{padding:18px 0}.cards{display:grid;grid-template-columns:1.25fr .75fr;gap:14px}.panel{border:1px solid var(--line);border-radius:22px;padding:18px;background:#fff}.panel h2{margin:0 0 8px;text-transform:uppercase;letter-spacing:.03em}.status-list{display:grid;gap:7px;margin:14px 0 0;padding:0;list-style:none}.status-list li{border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--soft);font-weight:800}.mini-player{position:fixed;right:14px;bottom:14px;z-index:30;width:min(360px,calc(100% - 28px));border:1px solid var(--ink);border-radius:20px;background:#fff;box-shadow:0 14px 40px rgba(0,0,0,.16);padding:12px}.mini-player strong{display:block;text-transform:uppercase;letter-spacing:.06em}.mini-player audio{width:100%;margin-top:8px}.mini-player small{display:block;color:var(--muted);margin-top:6px}.admin-panel{position:fixed;inset:auto 14px 92px auto;z-index:29;width:min(390px,calc(100% - 28px));max-height:min(560px,70vh);overflow:auto;border:1px solid var(--ink);border-radius:22px;background:#fff;box-shadow:0 14px 42px rgba(0,0,0,.18);padding:16px;display:none}.admin-panel.open{display:block}.admin-panel label{display:grid;gap:6px;margin-top:10px;font-weight:900;text-transform:uppercase;font-size:.8rem;letter-spacing:.05em}.admin-panel input{border:1px solid var(--ink);border-radius:12px;padding:10px;background:#fff}.footer{border-top:1px solid var(--line);margin-top:24px;padding:24px 0 130px;text-align:center;color:var(--muted)}.footer-links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:760px){.cards{grid-template-columns:1fr}.grid{gap:7px}.pad{border-radius:13px}.btn,.links a{width:100%}.links,.hero-actions{width:100%;display:grid}h1{font-size:clamp(3rem,18vw,6rem)}.mini-player{bottom:10px}.footer{padding-bottom:146px}}
 </style>
 </head>
 <body>
-<header><div class="wrap"><nav><a class="brand" href="./" aria-current="page">BearGrid</a><div class="links"><a href="https://bearicide.github.io/">Main</a><a href="https://bearicide.github.io/music-toys/">Music Toys</a><a href="https://bearicide.github.io/examples/">Examples</a></div></nav></div></header>
+<header><div class="wrap"><nav><a class="brand" href="./" aria-current="page"><span class="rainbow">MATTBEAR</span> / BearGrid</a><div class="links"><a href="https://bearicide.github.io/">Main</a><a href="https://bearicide.github.io/music-toys/">Music Toys</a><a href="https://bearicide.github.io/examples/">Examples</a><button class="btn" id="adminToggle" type="button">Admin</button></div></nav></div></header>
 <main class="wrap">
 <section class="hero">
-<h1>BearGrid</h1>
-<p>Blank white build page for the BearGrid music toy. Clean first, loud later. Touch, mouse, and keyboard-friendly grid foundation.</p>
+<span class="kicker">Quantized grid toy foundation · connected page shell</span>
+<h1>Bear<span class="rainbow">Grid</span></h1>
+<p>Clean first, loud later. BearGrid is the Kaossilator-inspired MATTBEAR grid sandbox: touch-friendly pads, keyboard triggers, future loop slots, and repo-ready hooks for shared audio, admin tools, and lightweight analytics.</p>
+<div class="hero-actions"><button class="btn" id="startAudio" type="button">Start Audio</button><a class="btn" href="https://github.com/bearicide/beargrid">Open Repo</a><a class="btn" href="https://bearicide.github.io/music-toys/">Back to Toys</a></div>
 <div class="grid" aria-label="BearGrid pad demo">
 <button class="pad">1</button><button class="pad">2</button><button class="pad">3</button><button class="pad">4</button>
 <button class="pad">5</button><button class="pad">6</button><button class="pad">7</button><button class="pad">8</button>
@@ -36,15 +45,40 @@ p{color:#555;line-height:1.55;font-size:1.05rem;max-width:760px}.grid{display:gr
 <button class="pad">A</button><button class="pad">S</button><button class="pad">D</button><button class="pad">F</button>
 </div>
 </section>
-<section class="section"><div class="panel"><h2>Status</h2><p>Index is live-ready. README removed so the repo/page does not just auto-display “beargrid.”</p><a class="btn" href="https://github.com/bearicide/beargrid">Open Repo</a></div></section>
+<section class="section cards">
+<div class="panel"><h2>Build Status</h2><p>This is now a real connected landing page instead of an empty repo shell. The deeper instrument can be layered in without breaking the public route.</p><ul class="status-list"><li>✅ main/self/music-toys/examples links</li><li>✅ admin shell included</li><li>✅ mini-player shell included</li><li>✅ privacy-conscious tracker hook</li><li>✅ PWA manifest + service worker ready</li></ul></div>
+<div class="panel"><h2>Next Instrument Pass</h2><p>Recommended next edit: replace demo beeps with shared kit samples, then add tempo, scale, latch/loop, and quantized launch/stop behavior.</p><button class="btn" type="button" id="testPads">Test Pads</button></div>
+</section>
 </main>
+<section class="admin-panel" id="adminPanel" aria-label="Backend-ready admin panel">
+<h2>Admin Shell</h2>
+<p>Backend-ready only. Future target: upload/manage samples, BPM/key tags, page cards, and shared MATTBEAR assets.</p>
+<label>Page Title<input value="BearGrid | MATTBEAR" readonly></label>
+<label>Tracker Mode<input value="local + backend-ready endpoint hook" readonly></label>
+<label>Audio Source<input value="SoundCloud / local sample library pending" readonly></label>
+</section>
+<aside class="mini-player" aria-label="MATTBEAR mini-player">
+<strong><span class="rainbow">MATTBEAR</span> Mini-Player</strong>
+<small>SoundCloud-connected shell. Real embed/audio source can be swapped in during the next shared-player pass.</small>
+<a class="btn" style="width:100%;margin-top:10px" href="https://soundcloud.com/mattbear86">Open SoundCloud</a>
+</aside>
 <footer class="footer wrap"><strong>BearGrid · MATTBEAR</strong><div class="footer-links"><a class="btn" href="https://bearicide.github.io/">Main</a><a class="btn" href="https://bearicide.github.io/beargrid/">Self</a><a class="btn" href="https://bearicide.github.io/music-toys/">Music Toys</a><a class="btn" href="https://bearicide.github.io/examples/">Examples</a></div></footer>
 <script>
 const pads=[...document.querySelectorAll('.pad')];
 const keys=['1','2','3','4','5','6','7','8','q','w','e','r','a','s','d','f'];
+let audioCtx=null;
+let tracker={page:'beargrid',hits:0,lastPad:null,started:new Date().toISOString()};
+function track(event,detail={}){tracker.hits++;try{localStorage.setItem('mattbear-beargrid-tracker',JSON.stringify({...tracker,event,detail,updated:new Date().toISOString()}));}catch(err){} }
+function ensureAudio(){if(!audioCtx){audioCtx=new (window.AudioContext||window.webkitAudioContext)();}if(audioCtx.state==='suspended')audioCtx.resume();}
+function beep(i){ensureAudio();const osc=audioCtx.createOscillator();const gain=audioCtx.createGain();osc.type='sine';osc.frequency.value=180+(i*42);gain.gain.setValueAtTime(.001,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(.18,audioCtx.currentTime+.012);gain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.18);osc.connect(gain).connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+.2)}
+function pulse(i){const p=pads[i];if(!p)return;p.classList.add('on');tracker.lastPad=p.textContent;track('pad',{pad:p.textContent,index:i});beep(i);setTimeout(()=>p.classList.remove('on'),160)}
 pads.forEach((pad,i)=>pad.addEventListener('click',()=>pulse(i)));
-window.addEventListener('keydown',e=>{const i=keys.indexOf(e.key.toLowerCase());if(i>-1)pulse(i)});
-function pulse(i){const p=pads[i];p.classList.add('on');setTimeout(()=>p.classList.remove('on'),160)}
+window.addEventListener('keydown',e=>{const i=keys.indexOf(e.key.toLowerCase());if(i>-1){e.preventDefault();pulse(i)}});
+document.getElementById('startAudio').addEventListener('click',()=>{ensureAudio();track('audio-start')});
+document.getElementById('testPads').addEventListener('click',()=>pads.forEach((_,i)=>setTimeout(()=>pulse(i),i*75)));
+document.getElementById('adminToggle').addEventListener('click',()=>document.getElementById('adminPanel').classList.toggle('open'));
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));}
+track('page-load');
 </script>
 </body>
 </html>
