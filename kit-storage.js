@@ -1,0 +1,1 @@
+window.BearGridKits=(function(){function save(name,data){localStorage.setItem('beargrid-kit-'+name,JSON.stringify(data))}function load(name){return JSON.parse(localStorage.getItem('beargrid-kit-'+name)||'{}')}function list(){return Object.keys(localStorage).filter(k=>k.startsWith('beargrid-kit-')).map(k=>k.replace('beargrid-kit-',''))}return{save,load,list}})();
