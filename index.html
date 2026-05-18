@@ -1,1 +1,58 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>BearGrid | MATTBEAR</title><meta name="description" content="BearGrid: a playable MATTBEAR browser music workstation with 16 fleshed-out machine grids, pads, sequencer, samples, MIDI, recording, and save/load."><meta name="theme-color" content="#06070d"><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"></head><body><header><div class="wrap"><nav><a class="brand" href="./"><span class="rainbow">MATTBEAR</span> / BearGrid</a><div class="links"><a href="./">Self</a><a href="https://bearicide.github.io/">Main</a><a href="https://bearicide.github.io/music-toys/">Music Toys</a><a href="samples/README.md">Samples</a></div></nav></div></header><main class="wrap"><section class="hero"><span class="kicker">Playable browser music workstation · v0.4 grid flesh pass</span><h1>Bear<span class="rainbow">Grid</span></h1><p>Pick a machine, hit named pads, write 16-step patterns, load local samples, record a take, save a kit, and perform with keyboard or MIDI. The 4×4 grid is now the operating surface, not just decoration.</p><div class="links"><button class="btn" id="start">START</button><button class="btn" id="panic">PANIC</button><button class="btn" id="rec">REC</button><a class="btn" id="download" hidden>DOWNLOAD TAKE</a></div></section><section class="workstation"><aside class="panel"><span class="kicker">4×4 Machine Grid</span><div id="machines" class="machine-picker"></div></aside><section class="panel main-machine"><div class="machine-head"><div class="machine-icon" id="machineIcon">🥁</div><div><span class="kicker" id="machineSub">beats</span><h2 id="machineName">Drum Machine</h2><p id="status">Ready.</p></div></div><div id="schematicFlow" class="flow-panel">clock &gt; pattern &gt; voice &gt; mix &gt; master</div><label class="dropzone">Load samples for current machine<input id="sampleInput" type="file" accept="audio/*" multiple></label><h3>4×4 Pad Grid</h3><div id="pads" class="control-grid" aria-label="Playable machine-aware pads"></div><div class="transport-row"><label>BPM <input id="bpm" type="number" min="40" max="220" value="96"></label><button class="btn" id="saveKit">SAVE KIT</button><button class="btn" id="loadKit">LOAD KIT</button></div><h3>16-Step Pattern</h3><div id="steps" class="step-grid" aria-label="Sequencer steps"></div><canvas id="viz" width="640" height="140" aria-label="Visualizer"></canvas></section></section></main><footer class="wrap">BearGrid · fleshed-out grid shell · <span class="rainbow">MATTBEAR</span></footer><script src="audio-engine.js"></script><script src="sample-loader.js"></script><script src="beargrid-core.js"></script><script src="sequencer.js"></script><script src="midi-manager.js"></script><script src="drag-drop.js"></script><script src="kit-storage.js"></script><script src="pattern-memory.js"></script><script src="mixer.js"></script><script src="transport.js"></script><script src="router.js"></script><script src="visualizer.js"></script><script src="recorder.js"></script><script src="sound-design.js"></script><script src="machine-schematics.js"></script><script src="grid-flesh.js"></script><script src="app.js"></script><script>navigator.serviceWorker&&navigator.serviceWorker.register('service-worker.js').catch(()=>{});window.addEventListener('DOMContentLoaded',()=>{BearGridViz&&BearGridViz.attach('#viz')})</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BearGrid Machines | MATTBEAR</title>
+<meta name="description" content="BearGrid: 16 MATTBEAR music-machine tiles. Each tile opens its own machine page with machine-specific behavior.">
+<meta name="theme-color" content="#07090f">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="assets/css/beargrid-machines.css">
+</head>
+<body>
+<header><div class="wrap"><nav>
+<a class="brand" href="./"><span class="rainbow">MATTBEAR</span> / BearGrid</a>
+<div class="links">
+<a href="./">Self</a>
+<a href="https://bearicide.github.io/">Main</a>
+<a href="https://bearicide.github.io/music-toys/">Music Toys</a>
+<a href="samples/README.md">Samples</a>
+</div>
+</nav></div></header>
+
+<main class="wrap">
+<section class="hero">
+<span class="kicker">Tile hub · each tile opens a machine · no fake mystery box</span>
+<h1>Bear<span class="rainbow">Grid</span> Machines</h1>
+<p>Pick a tile. It opens that machine. The machine page now owns its behavior: drum pads hit like drums, Kaossilator acts like an XY synth, Choppa slices/stutters, Sampla loads one-shots, FX pages process sound, and synth pages actually synth.</p>
+<div class="links" style="margin-top:18px">
+<a href="machines/drum-machine.html">Start at Drum Machine</a>
+<a href="machines/kaossilator-pro.html">Kaossilator Pro</a>
+<a href="machines/the-choppa.html">The Choppa</a>
+</div>
+</section>
+
+<section class="machine-grid" aria-label="BearGrid machine tile list">
+<a class="card" style="--accent:#ff9f1c" href="machines/drum-machine.html"><img src="assets/tiles/drum-machine.png" alt="Drum Machine tile"><div class="card-body"><h2>01 · Drum Machine</h2><small>Classic beat production</small></div></a>
+<a class="card" style="--accent:#9cff00" href="machines/kaossilator-pro.html"><img src="assets/tiles/kaossilator-pro.png" alt="Kaossilator Pro tile"><div class="card-body"><h2>02 · Kaossilator Pro</h2><small>Touchpad synth & effects</small></div></a>
+<a class="card" style="--accent:#eeeeee" href="machines/op-1.html"><img src="assets/tiles/op-1.png" alt="OP-1 tile"><div class="card-body"><h2>03 · OP-1</h2><small>Portable synth & sampler</small></div></a>
+<a class="card" style="--accent:#b66cff" href="machines/orchid.html"><img src="assets/tiles/orchid.png" alt="Orchid tile"><div class="card-body"><h2>04 · Orchid</h2><small>Generative chord engine</small></div></a>
+<a class="card" style="--accent:#95c744" href="machines/reese.html"><img src="assets/tiles/reese.png" alt="Reese tile"><div class="card-body"><h2>05 · Reese</h2><small>Bass synth engine</small></div></a>
+<a class="card" style="--accent:#22d3ee" href="machines/looping-drum-loops.html"><img src="assets/tiles/looping-drum-loops.png" alt="Looping Drum Loops tile"><div class="card-body"><h2>06 · Looping Drum Loops</h2><small>Loop and rhythm launcher</small></div></a>
+<a class="card" style="--accent:#ff4d3d" href="machines/the-choppa.html"><img src="assets/tiles/the-choppa.png" alt="The Choppa tile"><div class="card-body"><h2>07 · The Choppa</h2><small>Sample slicer & stutter</small></div></a>
+<a class="card" style="--accent:#4aa3ff" href="machines/sampla.html"><img src="assets/tiles/sampla.png" alt="Sampla tile"><div class="card-body"><h2>08 · Sampla</h2><small>Portable sampler</small></div></a>
+<a class="card" style="--accent:#ffd000" href="machines/launcha.html"><img src="assets/tiles/launcha.png" alt="Launcha tile"><div class="card-body"><h2>09 · Launcha</h2><small>Sample & clip launcher</small></div></a>
+<a class="card" style="--accent:#62b6ff" href="machines/mono-station.html"><img src="assets/tiles/mono-station.png" alt="Mono Station tile"><div class="card-body"><h2>10 · Mono Station</h2><small>Analog-style mono synth</small></div></a>
+<a class="card" style="--accent:#d9b985" href="machines/mellotron.html"><img src="assets/tiles/mellotron.png" alt="Mellotron tile"><div class="card-body"><h2>11 · Mellotron</h2><small>Tape sample player</small></div></a>
+<a class="card" style="--accent:#c05cff" href="machines/bit-crusher.html"><img src="assets/tiles/bit-crusher.png" alt="Bit Crusher tile"><div class="card-body"><h2>12 · Bit Crusher</h2><small>Lo-fi texture machine</small></div></a>
+<a class="card" style="--accent:#2dd4d7" href="machines/fm-station.html"><img src="assets/tiles/fm-station.png" alt="FM Station tile"><div class="card-body"><h2>13 · FM Station</h2><small>FM synth engine</small></div></a>
+<a class="card" style="--accent:#9ccc65" href="machines/delay-station.html"><img src="assets/tiles/delay-station.png" alt="Delay Station tile"><div class="card-body"><h2>14 · Delay Station</h2><small>Delay processor</small></div></a>
+<a class="card" style="--accent:#f6c600" href="machines/filter-station.html"><img src="assets/tiles/filter-station.png" alt="Filter Station tile"><div class="card-body"><h2>15 · Filter Station</h2><small>Multi-mode filter</small></div></a>
+<a class="card" style="--accent:#b8c4d4" href="machines/master-fx.html"><img src="assets/tiles/master-fx.png" alt="Master FX tile"><div class="card-body"><h2>16 · Master FX</h2><small>Performance FX processor</small></div></a>
+</section>
+</main>
+
+<footer class="footer wrap">BearGrid · tile machine hub · <span class="rainbow">MATTBEAR</span></footer>
+<script>navigator.serviceWorker&&navigator.serviceWorker.register('service-worker.js').catch(()=>{});</script>
+</body>
+</html>
