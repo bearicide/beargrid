@@ -1,10 +1,12 @@
-const CACHE='beargrid-v1.1.0-machine-modules';
+const CACHE='beargrid-v1.2.0-pad-memory';
 const ASSETS=[
   './',
   './index.html',
   './manifest.json',
   './assets/css/beargrid-machines.css',
   './assets/js/machine.js',
+  './assets/js/pad-memory.js',
+  './assets/audio/kits/basement-thunder/kit.json',
   './machines/drum-machine.html',
   './machines/kaossilator-pro.html',
   './machines/op-1.html',
@@ -30,9 +32,9 @@ self.addEventListener('activate',event=>{
 });
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET') return;
-  event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{
+  event.respondWith(fetch(event.request).then(response=>{
     const clone=response.clone();
     caches.open(CACHE).then(cache=>cache.put(event.request,clone));
     return response;
-  }).catch(()=>caches.match('./index.html'))));
+  }).catch(()=>caches.match(event.request).then(cached=>cached||caches.match('./index.html'))));
 });
