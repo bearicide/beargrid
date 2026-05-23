@@ -4,7 +4,7 @@ BearGrid is a browser-native MATTBEAR music-machine hub: sixteen linked machine 
 
 ## Current build
 
-This build turns the grid into a shared instrument system with per-machine pages, bigger readable controls, local sample memory, and PWA cache support.
+This build turns the grid into a shared instrument system with per-machine pages, bigger readable controls, local sample memory, Kenney starter audio routing, and PWA cache support.
 
 Built in:
 
@@ -21,6 +21,7 @@ Built in:
 - reactive module UI
 - live signal scope canvas
 - sample-bank manifest loader
+- service-worker Kenney starter pack for pads 1-8
 - local audio file assignment to pads
 - browser-side pad memory through IndexedDB
 - virtual sample-bank bridge through the service worker
@@ -51,6 +52,29 @@ Pad Memory lets you put your own local audio file on a pad.
 
 Privacy note: local pad-memory files are not uploaded anywhere by this build. They stay in the browser storage for that device/profile.
 
+## Starter audio pack
+
+The current starter pack is wired by `service-worker.js`. When a machine asks for:
+
+```text
+assets/audio/kits/basement-thunder/kit.json
+```
+
+the service worker returns a virtual kit using real Kenney `.ogg` sounds from public raw GitHub mirrors:
+
+```text
+Kick  = Kenney Impact sound
+Snare = Kenney Impact sound
+Hat   = Kenney Casino chip sound
+Clap  = Kenney Casino chip sound
+Perc  = Kenney Impact sound
+Bass  = Kenney Sci-fi engine sound
+Vox   = Kenney Casino chips-stack sound
+FX    = Kenney Digital laser sound
+```
+
+Local pad-memory samples override these starter slots when saved. The raw-linked Kenney starter pack is a practical working layer until the audio binaries can be vendor-copied into this repo directly.
+
 ## Machine modules
 
 - Drum Machine: 16-step sequencer with seed/four-on-floor controls
@@ -79,22 +103,6 @@ Privacy note: local pad-memory files are not uploaded anywhere by this build. Th
 - Pad capture: choose a target pad, press REC PAD, stop, then PLAY PAD
 - Local pad memory: choose a local audio file for a pad; the browser stores and restores it locally
 
-## Sample bank path
-
-```text
-assets/audio/kits/basement-thunder/kit.json
-assets/audio/kits/basement-thunder/kick.wav
-assets/audio/kits/basement-thunder/snare.wav
-assets/audio/kits/basement-thunder/hat.wav
-assets/audio/kits/basement-thunder/clap.wav
-assets/audio/kits/basement-thunder/perc.wav
-assets/audio/kits/basement-thunder/bass.wav
-assets/audio/kits/basement-thunder/vox.wav
-assets/audio/kits/basement-thunder/fx.wav
-```
-
-The JSON manifest is wired. If WAV files are not present, the shared synth fallback keeps all machines playable.
-
 ## Architecture
 
 ```text
@@ -108,23 +116,24 @@ manifest.json
 service-worker.js
 ```
 
-The machine pages stay lightweight. The shared core reads `body[data-machine]`, applies the right machine profile, injects the correct module, and keeps timing/audio/session behavior consistent across the full grid. `pad-memory.js` adds local file assignment and IndexedDB storage. `service-worker.js` can expose saved pad-memory files as a virtual sample bank so reloaded pages can ingest local pads through the normal sample-bank route.
+The machine pages stay lightweight. The shared core reads `body[data-machine]`, applies the right machine profile, injects the correct module, and keeps timing/audio/session behavior consistent across the full grid. `pad-memory.js` adds local file assignment and IndexedDB storage. `service-worker.js` exposes the Kenney starter bank and saved pad-memory files as a virtual sample bank so machine pages can ingest pads through the normal sample-bank route.
 
 ## Current maintenance notes
 
-- Service worker cache: `beargrid-v1.2.4-readable-qol`
+- Service worker cache: `beargrid-v1.2.6-kenney-pack`
 - Live machine pages load both `machine.js` and `pad-memory.js`
 - Main CSS scaled for larger readable controls and mobile touch comfort
 - Pad Memory panel has inline instructions and clearer status messages
+- Starter audio is wired through real Kenney `.ogg` source files
 - Existing archived machine-page copies under `MATTBEAR - BearGrid Machine Pages/` may remain as historical exports
 
 ## Next best upgrades
 
-1. Add Launchkey visual hardware mirror
-2. Add clear per-pad loop length controls
-3. Add deeper FX routing buses
-4. Add a compact admin/edit panel for live page tuning
-5. Add export/import for saved pad-memory kits
-6. Add actual WAV files into the Basement Thunder folder for a built-in starter kit
+1. Vendor-copy the Kenney audio binaries directly into `assets/audio/kits/basement-thunder/`
+2. Add Launchkey visual hardware mirror
+3. Add clear per-pad loop length controls
+4. Add deeper FX routing buses
+5. Add a compact admin/edit panel for live page tuning
+6. Add export/import for saved pad-memory kits
 
 MATTBEAR · Chaos into signal · bearicide.github.io
