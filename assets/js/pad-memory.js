@@ -68,11 +68,11 @@
     });
   }
 
-  async function save(index, arrayBuffer, name) {
+  async function save(index, arrayBuffer, name, type = '') {
     const db = await openDb();
     return new Promise((resolve) => {
       const tx = db.transaction(storeName, 'readwrite');
-      tx.objectStore(storeName).put({ arrayBuffer, name, time: Date.now() }, key(index));
+      tx.objectStore(storeName).put({ arrayBuffer, name, type, time: Date.now() }, key(index));
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => resolve(false);
     });
@@ -102,10 +102,11 @@
     const box = document.createElement('section');
     box.className = 'machine-module pad-memory';
     box.innerHTML = `<div class="module-head"><strong>Pad memory</strong><span>QUANTIZED LOCAL</span></div>
-      <div class="pad-memory-box"><strong>Choose a local sound</strong><span>Saved in this browser. Playback follows the BearGrid quantize grid and choke setting.</span></div>
-      <div class="pad-memory-row"><select data-pad-memory-target>${pads.map((pad, i) => `<option value="${i}">${i + 1} · ${pad.textContent.trim()}</option>`).join('')}</select><input data-pad-memory-file type="file" accept="audio/*"></div>
-      <div class="module-actions"><button class="transport-btn" type="button" data-pad-memory="play">QUEUE / PLAY</button><button class="transport-btn" type="button" data-pad-memory="clear">CLEAR</button></div>
-      <p class="machine-hint" data-pad-memory-status>Ready for quantized local pad samples.</p>`;
+      <div class="pad-memory-box"><strong>Load your own sound</strong><span>Pick a pad, choose an audio file, then BearGrid saves it inside this browser. It queues to the beat grid and survives reloads.</span></div>
+      <ol class="pad-memory-steps"><li><b>1 · Pick pad</b>Select the pad slot you want to replace.</li><li><b>2 · Choose file</b>Load WAV, MP3, M4A, WEBM, or another browser-supported audio file.</li><li><b>3 · Play locked</b>QUEUE / PLAY waits for the quantize grid instead of firing sloppy.</li><li><b>4 · Reload</b>After reload, saved pads feed the virtual kit bank for engine playback.</li></ol>
+      <div class="pad-memory-row"><select aria-label="Pad memory target pad" data-pad-memory-target>${pads.map((pad, i) => `<option value="${i}">${i + 1} · ${pad.textContent.trim()}</option>`).join('')}</select><input aria-label="Choose local audio file" data-pad-memory-file type="file" accept="audio/*"></div>
+      <div class="module-actions"><button class="transport-btn" type="button" data-pad-memory="play">QUEUE / PLAY</button><button class="transport-btn" type="button" data-pad-memory="clear">CLEAR PAD</button></div>
+      <p class="machine-hint" data-pad-memory-status>Ready. Loaded files stay local to this browser/device.</p>`;
     const status = panel.querySelector('.status');
     if (status) status.before(box); else panel.appendChild(box);
     sharedStatus = box.querySelector('[data-pad-memory-status]');
@@ -123,12 +124,12 @@
       const arrayBuffer = await file.arrayBuffer();
       const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
       buffers.set(index, decoded);
-      await save(index, arrayBuffer, file.name);
+      await save(index, arrayBuffer, file.name, file.type || '');
       mark();
-      status(`Loaded ${file.name} on pad ${index + 1}. Queued to grid.`);
+      status(`Loaded ${file.name} on pad ${index + 1}. It is saved locally; reload once for full virtual-bank engine ingest.`);
       play(index, false);
     } catch (error) {
-      status('That sound could not be decoded.');
+      status('That sound could not be decoded. Try WAV, MP3, M4A, or a shorter file.');
     }
   }
 
@@ -164,7 +165,7 @@
   function play(index, immediate = false) {
     const buffer = buffers.get(index);
     if (!buffer) {
-      status(`No local sound on pad ${index + 1}`);
+      status(`No local sound on pad ${index + 1}. Choose a file first.`);
       return false;
     }
     audio();
@@ -186,7 +187,7 @@
     activeSources.set(id, { source, gain });
     setTimeout(() => activeSources.delete(id), Math.ceil((maxLength + 0.15) * 1000));
     flash(index, when);
-    status(`Pad ${index + 1} queued on ${session.quantize || '1/4'} grid.`);
+    status(`Pad ${index + 1} queued on ${session.quantize || '1/4'} grid. Choke ${session.choke === false ? 'off' : 'on'}.`);
     return true;
   }
 
@@ -205,13 +206,7 @@
       } catch (error) {}
     }));
     mark();
-    if (buffers.size) status(`${buffers.size} quantized local pad sound${buffers.size === 1 ? '' : 's'} restored.`);
-  }
-
-  function styles() {
-    const style = document.createElement('style');
-    style.textContent = `.pad-memory{border-color:color-mix(in srgb,var(--green) 48%,var(--line));}.pad-memory-box{display:grid;gap:6px;place-items:center;min-height:96px;border:1px dashed var(--green);border-radius:18px;background:rgba(156,255,0,.06);padding:16px;text-align:center}.pad-memory-box strong{text-transform:uppercase;letter-spacing:.08em}.pad-memory-box span{color:var(--muted)}.pad-memory-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.pad-memory-row select,.pad-memory-row input{width:100%;min-height:44px;border:1px solid var(--line);border-radius:14px;background:#0c1018;color:var(--ink);padding:8px 10px;font-weight:900}.pad.local-pad::before{content:'LOCAL';position:absolute;right:7px;top:7px;z-index:4;font-size:.56rem;border:1px solid var(--green);border-radius:999px;padding:2px 5px;color:var(--green);background:rgba(0,0,0,.68)}@media(max-width:520px){.pad-memory-row{grid-template-columns:1fr}}`;
-    document.head.appendChild(style);
+    if (buffers.size) status(`${buffers.size} saved local pad sound${buffers.size === 1 ? '' : 's'} restored. Reload once after new imports for full engine-bank mode.`);
   }
 
   styles();
@@ -234,7 +229,7 @@
       stopSource(`local-${index}`);
       await remove(index);
       mark();
-      status(`Cleared pad ${index + 1}`);
+      status(`Cleared pad ${index + 1}. Reload to remove it from virtual-bank mode.`);
     }
   });
 
