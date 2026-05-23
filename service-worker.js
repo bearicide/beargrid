@@ -1,4 +1,4 @@
-const CACHE='beargrid-v1.2.3-virtual-pad-bank-indexed';
+const CACHE='beargrid-v1.2.4-readable-qol';
 const DB_NAME='beargrid-pad-memory';
 const STORE_NAME='pads';
 const ASSETS=[
