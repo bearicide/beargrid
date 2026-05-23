@@ -1,4 +1,4 @@
-const CACHE='beargrid-v1.2.6-kenney-pack';
+const CACHE='beargrid-v1.2.7-easy-play-guide';
 const DB_NAME='beargrid-pad-memory';
 const STORE_NAME='pads';
 const ASSETS=[
