@@ -4,7 +4,7 @@ BearGrid is a browser-native MATTBEAR music-machine hub: sixteen linked machine 
 
 ## Current build
 
-This build turns the grid into a shared instrument system with per-machine pages, local sample memory, and PWA cache support.
+This build turns the grid into a shared instrument system with per-machine pages, bigger readable controls, local sample memory, and PWA cache support.
 
 Built in:
 
@@ -16,15 +16,40 @@ Built in:
 - session save/load through localStorage
 - Web MIDI hooks for Launchkey-style pad input
 - offline/PWA shell
+- larger touch-friendly control surface
+- clearer pad-memory instructions and status messages
 - reactive module UI
 - live signal scope canvas
 - sample-bank manifest loader
 - local audio file assignment to pads
 - browser-side pad memory through IndexedDB
+- virtual sample-bank bridge through the service worker
 - restored local samples after reload
 - mic-to-pad capture flow
 - recorded-pad playback fallback
-- service worker cache bumped for pad-memory delivery
+
+## Quick start
+
+1. Open `index.html` or the GitHub Pages site.
+2. Pick a machine.
+3. Tap pads or use keyboard keys `1-8`.
+4. Use `PLAY` to start the clock.
+5. Set `BPM`, `Volume`, and `Quantize`.
+6. Use `CHOKE ON` for tight one-sound-at-a-time behavior.
+7. Use `Escape` for panic stop.
+
+## Pad memory instructions
+
+Pad Memory lets you put your own local audio file on a pad.
+
+1. Pick the pad slot from the Pad Memory dropdown.
+2. Choose a local audio file such as WAV, MP3, M4A, WEBM, or another browser-supported audio file.
+3. The file is saved only inside that browser/device through IndexedDB.
+4. `QUEUE / PLAY` waits for the quantize grid, so the sample lands on time.
+5. Reload once after importing a new file if you want the service-worker virtual bank to feed the sample into the normal engine bank path.
+6. Use `CLEAR PAD` to remove the saved local sample from that pad, then reload to fully clear virtual-bank mode.
+
+Privacy note: local pad-memory files are not uploaded anywhere by this build. They stay in the browser storage for that device/profile.
 
 ## Machine modules
 
@@ -83,22 +108,23 @@ manifest.json
 service-worker.js
 ```
 
-The machine pages stay lightweight. The shared core reads `body[data-machine]`, applies the right machine profile, injects the correct module, and keeps timing/audio/session behavior consistent across the full grid. `pad-memory.js` adds local file assignment and IndexedDB storage without replacing the shared engine.
+The machine pages stay lightweight. The shared core reads `body[data-machine]`, applies the right machine profile, injects the correct module, and keeps timing/audio/session behavior consistent across the full grid. `pad-memory.js` adds local file assignment and IndexedDB storage. `service-worker.js` can expose saved pad-memory files as a virtual sample bank so reloaded pages can ingest local pads through the normal sample-bank route.
 
 ## Current maintenance notes
 
-- Service worker cache: `beargrid-v1.2.0-pad-memory`
+- Service worker cache: `beargrid-v1.2.4-readable-qol`
 - Live machine pages load both `machine.js` and `pad-memory.js`
-- Filter Station labels restored after emergency wiring pass
+- Main CSS scaled for larger readable controls and mobile touch comfort
+- Pad Memory panel has inline instructions and clearer status messages
 - Existing archived machine-page copies under `MATTBEAR - BearGrid Machine Pages/` may remain as historical exports
 
 ## Next best upgrades
 
-1. Drop actual WAV files into the Basement Thunder folder
-2. Add Launchkey visual hardware mirror
-3. Integrate local pad memory deeper into the core quantized engine
-4. Add clear per-pad loop length controls
-5. Add deeper FX routing buses
-6. Add a compact admin/edit panel for live page tuning
+1. Add Launchkey visual hardware mirror
+2. Add clear per-pad loop length controls
+3. Add deeper FX routing buses
+4. Add a compact admin/edit panel for live page tuning
+5. Add export/import for saved pad-memory kits
+6. Add actual WAV files into the Basement Thunder folder for a built-in starter kit
 
 MATTBEAR · Chaos into signal · bearicide.github.io
