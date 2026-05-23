@@ -209,7 +209,6 @@
     if (buffers.size) status(`${buffers.size} saved local pad sound${buffers.size === 1 ? '' : 's'} restored. Reload once after new imports for full engine-bank mode.`);
   }
 
-  styles();
   const ui = makeUi();
   const select = ui.querySelector('[data-pad-memory-target]');
   const input = ui.querySelector('[data-pad-memory-file]');
