@@ -98,15 +98,37 @@
     });
   }
 
+  function injectEasyStyles() {
+    if (document.querySelector('[data-beargrid-easy-style]')) return;
+    const style = document.createElement('style');
+    style.dataset.beargridEasyStyle = 'true';
+    style.textContent = `
+      .easy-play-card{display:grid;gap:14px;margin:20px 0;padding:18px;border:2px solid var(--accent);border-radius:24px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 15%,transparent),rgba(0,0,0,.22));box-shadow:0 0 24px color-mix(in srgb,var(--accent) 18%,transparent)}
+      .easy-play-card strong{font-size:clamp(1.3rem,3vw,2rem);text-transform:uppercase;letter-spacing:.06em;color:var(--ink)}
+      .easy-play-card p{margin:0;max-width:none;color:var(--soft);font-size:1.08rem;line-height:1.5}
+      .easy-play-list{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0;padding:0;list-style:none}
+      .easy-play-list li{padding:13px;border:1px solid var(--line);border-radius:16px;background:rgba(0,0,0,.24);color:var(--soft);font-weight:900;line-height:1.35}
+      .easy-play-list b{display:block;margin-bottom:4px;color:var(--green);font-size:.78rem;letter-spacing:.1em;text-transform:uppercase}
+      .easy-play-note{padding:12px 14px;border-radius:16px;background:rgba(156,255,0,.09);border:1px solid color-mix(in srgb,var(--green) 55%,var(--line));color:var(--soft);font-weight:900}
+      .pad-memory .machine-hint{font-size:1.08rem;color:var(--soft)}
+      @media(max-width:900px){.easy-play-list{grid-template-columns:repeat(2,1fr)}}
+      @media(max-width:560px){.easy-play-list{grid-template-columns:1fr}.easy-play-card{padding:15px}.easy-play-list li{font-size:1rem}}
+    `;
+    document.head.appendChild(style);
+  }
+
   function makeUi() {
+    injectEasyStyles();
     const box = document.createElement('section');
     box.className = 'machine-module pad-memory';
-    box.innerHTML = `<div class="module-head"><strong>Pad memory</strong><span>QUANTIZED LOCAL</span></div>
-      <div class="pad-memory-box"><strong>Load your own sound</strong><span>Pick a pad, choose an audio file, then BearGrid saves it inside this browser. It queues to the beat grid and survives reloads.</span></div>
-      <ol class="pad-memory-steps"><li><b>1 · Pick pad</b>Select the pad slot you want to replace.</li><li><b>2 · Choose file</b>Load WAV, MP3, M4A, WEBM, or another browser-supported audio file.</li><li><b>3 · Play locked</b>QUEUE / PLAY waits for the quantize grid instead of firing sloppy.</li><li><b>4 · Reload</b>After reload, saved pads feed the virtual kit bank for engine playback.</li></ol>
+    box.innerHTML = `<div class="module-head"><strong>Start here</strong><span>PICK UP + PLAY</span></div>
+      <div class="easy-play-card"><strong>Quick play</strong><p>BearGrid already has starter sounds on the first eight pads. Tap a big pad to hear it. Press PLAY when you want the clock/sequencer running. Press ESC if things get loud or weird.</p><ol class="easy-play-list"><li><b>1 · Tap pads</b>Use the big buttons first. They are the instrument.</li><li><b>2 · Press PLAY</b>Starts the shared clock so loops and sequencers lock in.</li><li><b>3 · Load sound</b>Pick a pad below, choose an audio file, then tap it.</li><li><b>4 · Panic stop</b>Hit ESC to stop stuck sound fast.</li></ol><div class="easy-play-note">Simple mode: tap pads 1-8. Custom mode: load your own sounds below.</div></div>
+      <div class="module-head"><strong>Pad memory</strong><span>YOUR LOCAL SOUNDS</span></div>
+      <div class="pad-memory-box"><strong>Load your own sound</strong><span>Choose a pad, choose an audio file, and BearGrid saves it inside this browser. It queues to the beat grid and survives reloads.</span></div>
+      <ol class="pad-memory-steps"><li><b>1 · Pick pad</b>Select the pad slot you want to replace.</li><li><b>2 · Choose file</b>Use WAV, MP3, M4A, WEBM, or another browser-supported audio file.</li><li><b>3 · Play locked</b>QUEUE / PLAY waits for the quantize grid.</li><li><b>4 · Reload</b>Reload once after new imports for full engine-bank mode.</li></ol>
       <div class="pad-memory-row"><select aria-label="Pad memory target pad" data-pad-memory-target>${pads.map((pad, i) => `<option value="${i}">${i + 1} · ${pad.textContent.trim()}</option>`).join('')}</select><input aria-label="Choose local audio file" data-pad-memory-file type="file" accept="audio/*"></div>
       <div class="module-actions"><button class="transport-btn" type="button" data-pad-memory="play">QUEUE / PLAY</button><button class="transport-btn" type="button" data-pad-memory="clear">CLEAR PAD</button></div>
-      <p class="machine-hint" data-pad-memory-status>Ready. Loaded files stay local to this browser/device.</p>`;
+      <p class="machine-hint" aria-live="polite" data-pad-memory-status>Ready. Tap pads 1-8 for starter sounds, or load your own audio below.</p>`;
     const status = panel.querySelector('.status');
     if (status) status.before(box); else panel.appendChild(box);
     sharedStatus = box.querySelector('[data-pad-memory-status]');
@@ -126,10 +148,10 @@
       buffers.set(index, decoded);
       await save(index, arrayBuffer, file.name, file.type || '');
       mark();
-      status(`Loaded ${file.name} on pad ${index + 1}. It is saved locally; reload once for full virtual-bank engine ingest.`);
+      status(`Saved ${file.name} to pad ${index + 1}. Tap that pad or use QUEUE / PLAY. Reload once for full engine-bank mode.`);
       play(index, false);
     } catch (error) {
-      status('That sound could not be decoded. Try WAV, MP3, M4A, or a shorter file.');
+      status('That sound could not be decoded. Try WAV, MP3, M4A, WEBM, or a shorter file.');
     }
   }
 
@@ -165,7 +187,7 @@
   function play(index, immediate = false) {
     const buffer = buffers.get(index);
     if (!buffer) {
-      status(`No local sound on pad ${index + 1}. Choose a file first.`);
+      status(`No custom sound on pad ${index + 1}. Tap pads 1-8 for starter sounds, or choose a file for this pad.`);
       return false;
     }
     audio();
@@ -187,7 +209,7 @@
     activeSources.set(id, { source, gain });
     setTimeout(() => activeSources.delete(id), Math.ceil((maxLength + 0.15) * 1000));
     flash(index, when);
-    status(`Pad ${index + 1} queued on ${session.quantize || '1/4'} grid. Choke ${session.choke === false ? 'off' : 'on'}.`);
+    status(`Pad ${index + 1} queued on ${session.quantize || '1/4'} grid. Choke is ${session.choke === false ? 'off' : 'on'}.`);
     return true;
   }
 
@@ -206,7 +228,7 @@
       } catch (error) {}
     }));
     mark();
-    if (buffers.size) status(`${buffers.size} saved local pad sound${buffers.size === 1 ? '' : 's'} restored. Reload once after new imports for full engine-bank mode.`);
+    if (buffers.size) status(`${buffers.size} custom pad sound${buffers.size === 1 ? '' : 's'} restored. Tap a green LOCAL pad or reload once for full engine-bank mode.`);
   }
 
   const ui = makeUi();
@@ -228,7 +250,7 @@
       stopSource(`local-${index}`);
       await remove(index);
       mark();
-      status(`Cleared pad ${index + 1}. Reload to remove it from virtual-bank mode.`);
+      status(`Cleared pad ${index + 1}. Starter sound returns after reload unless another custom file is saved.`);
     }
   });
 
