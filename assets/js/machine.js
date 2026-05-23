@@ -5,6 +5,8 @@
   const STORAGE_KEY = `mattbear-beargrid-session-${MACHINE}`;
   const GLOBAL_KEY = 'mattbear-beargrid-global-session';
   const padEls = Array.from(document.querySelectorAll('.pad'));
+  const isMachinePage = !!document.querySelector('.machine-page');
+  const bankUrl = '../assets/audio/kits/basement-thunder/kit.json';
 
   const state = {
     bpm: 120,
@@ -17,15 +19,22 @@
     activeSources: new Map(),
     activeClips: new Set(),
     heldNotes: new Map(),
+    sampleBuffers: new Map(),
+    recordedBuffers: new Map(),
+    loadPromises: new Map(),
     midiReady: false,
     lastPad: null,
+    selectedPad: 0,
+    sampleBankLoaded: false,
+    recorder: { mediaRecorder: null, stream: null, chunks: [], active: false },
     xy: { x: 0.5, y: 0.5, latch: false, touching: false },
     macros: { filter: 0.82, delay: 0.12, crush: 0.0, pump: 0.0 },
     pattern: Array.from({ length: Math.max(8, padEls.length || 8) }, () => Array(16).fill(false)),
     scheduledLookaheadMs: 25,
     scheduleAheadSec: 0.12,
     nextStepTime: 0,
-    timerId: null
+    timerId: null,
+    scopeEnergy: 0
   };
 
   const MACHINE_PROFILES = {
@@ -56,6 +65,7 @@
   let delayGain;
   let compressor;
   let crushNode;
+  let analyser;
 
   function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
@@ -68,7 +78,8 @@
       delayGain = ctx.createGain();
       compressor = ctx.createDynamicsCompressor();
       crushNode = ctx.createWaveShaper();
-
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
       master.gain.value = state.volume;
       filter.type = 'lowpass';
       filter.frequency.value = 16000;
@@ -79,14 +90,14 @@
       compressor.ratio.value = 3;
       crushNode.curve = makeCrushCurve(0);
       crushNode.oversample = '2x';
-
       filter.connect(crushNode);
       crushNode.connect(compressor);
       compressor.connect(master);
       filter.connect(delay);
       delay.connect(delayGain);
       delayGain.connect(compressor);
-      master.connect(ctx.destination);
+      master.connect(analyser);
+      analyser.connect(ctx.destination);
       applyMacros();
     }
     if (ctx.state === 'suspended') ctx.resume();
@@ -165,7 +176,7 @@
     return buffer;
   }
 
-  function connectVoice(output, gain, when, length, padIndex) {
+  function connectVoice(output, gain, when, padIndex) {
     const localFilter = ctx.createBiquadFilter();
     const fxAmount = profile.type === 'fx' ? 0.38 : 0.12;
     localFilter.type = padIndex % 2 ? 'bandpass' : 'lowpass';
@@ -175,15 +186,68 @@
     if (fxAmount > 0.2) delayGain.gain.setTargetAtTime(fxAmount, when, 0.03);
   }
 
+  async function loadSampleBank() {
+    if (state.sampleBankLoaded || state.loadPromises.has('bank')) return state.loadPromises.get('bank');
+    const job = fetch(bankUrl, { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then(async (bank) => {
+        if (!bank || !Array.isArray(bank.pads)) return false;
+        ensureAudio();
+        await Promise.all(bank.pads.map(async (item, index) => {
+          if (!item || !item.file) return;
+          const url = new URL(item.file, new URL(bankUrl, window.location.href)).href;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) return;
+            const data = await response.arrayBuffer();
+            const buffer = await ctx.decodeAudioData(data.slice(0));
+            state.sampleBuffers.set(index, buffer);
+            if (padEls[index] && item.label) padEls[index].textContent = item.label;
+          } catch (error) {}
+        }));
+        state.sampleBankLoaded = true;
+        updateSampleStatus();
+        return true;
+      })
+      .catch(() => false);
+    state.loadPromises.set('bank', job);
+    return job;
+  }
+
+  function playBuffer(buffer, padIndex, when, options = {}) {
+    ensureAudio();
+    const id = options.id || `buffer-${padIndex}`;
+    if (state.choke && !options.layer) chokeAll(id);
+    const source = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    source.buffer = buffer;
+    source.playbackRate.value = options.rate || 1;
+    connectVoice(source, gain, when, padIndex);
+    const length = Math.max(0.08, Math.min(buffer.duration / source.playbackRate.value, options.length || buffer.duration));
+    envelope(gain, when, length, options.peak || 0.88);
+    source.start(when, options.offset || 0, length);
+    source.stop(when + length + 0.05);
+    state.activeSources.set(id, { gain, stopper: () => source.stop() });
+    window.setTimeout(() => state.activeSources.delete(id), Math.ceil((length + 0.15) * 1000));
+    drawWaveform(buffer, padIndex);
+    state.scopeEnergy = 1;
+    return true;
+  }
+
   function playEnginePad(padIndex, when, options = {}) {
     ensureAudio();
+    const recorded = state.recordedBuffers.get(padIndex);
+    const sample = state.sampleBuffers.get(padIndex);
+    if (!options.forceSynth && (recorded || sample)) {
+      playBuffer(recorded || sample, padIndex, when, options);
+      return;
+    }
     const id = options.id || `pad-${padIndex}`;
     if (state.choke && !options.layer) chokeAll(id);
     const gain = ctx.createGain();
     const base = (options.frequency || profile.base + padIndex * 37) * (options.octave || 1);
     let length = options.length || 0.24;
     let stopper = null;
-
     if (profile.type === 'drum') {
       if (padIndex === 0) {
         const osc = ctx.createOscillator();
@@ -191,7 +255,7 @@
         osc.frequency.setValueAtTime(125, when);
         osc.frequency.exponentialRampToValueAtTime(42, when + 0.15);
         length = options.length || 0.22;
-        connectVoice(osc, gain, when, length, padIndex);
+        connectVoice(osc, gain, when, padIndex);
         envelope(gain, when, length, 0.95);
         osc.start(when); osc.stop(when + length + 0.04);
         stopper = () => osc.stop();
@@ -199,7 +263,7 @@
         const noise = ctx.createBufferSource();
         noise.buffer = makeNoiseBuffer(0.22);
         length = options.length || 0.2;
-        connectVoice(noise, gain, when, length, padIndex);
+        connectVoice(noise, gain, when, padIndex);
         envelope(gain, when, length, 0.55);
         noise.start(when); noise.stop(when + length + 0.04);
         stopper = () => noise.stop();
@@ -207,7 +271,7 @@
         const noise = ctx.createBufferSource();
         noise.buffer = makeNoiseBuffer(0.09);
         length = options.length || 0.08;
-        connectVoice(noise, gain, when, length, padIndex);
+        connectVoice(noise, gain, when, padIndex);
         envelope(gain, when, length, 0.35);
         noise.start(when); noise.stop(when + length + 0.03);
         stopper = () => noise.stop();
@@ -218,7 +282,7 @@
       osc.frequency.setValueAtTime(base, when);
       if (profile.type === 'chop') osc.frequency.setTargetAtTime(base * 1.5, when + 0.04, 0.03);
       length = options.length || (profile.type === 'loop' || profile.type === 'launch' ? quantizeSeconds() * 1.85 : 0.32);
-      connectVoice(osc, gain, when, length, padIndex);
+      connectVoice(osc, gain, when, padIndex);
       envelope(gain, when, length, profile.type === 'launch' ? 0.5 : 0.58);
       osc.start(when); osc.stop(when + length + 0.05);
       stopper = () => osc.stop();
@@ -228,7 +292,7 @@
         const osc = ctx.createOscillator();
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(base * ratio, when);
-        connectVoice(osc, gain, when, 0.72, padIndex);
+        connectVoice(osc, gain, when, padIndex);
         osc.start(when); osc.stop(when + 0.78);
         return osc;
       });
@@ -246,7 +310,7 @@
       modGain.gain.value = 80 + padIndex * 18 + state.xy.y * 100;
       mod.connect(modGain).connect(carrier.frequency);
       length = options.length || 0.46;
-      connectVoice(carrier, gain, when, length, padIndex);
+      connectVoice(carrier, gain, when, padIndex);
       envelope(gain, when, length, 0.52);
       mod.start(when); carrier.start(when);
       mod.stop(when + length + 0.05); carrier.stop(when + length + 0.05);
@@ -256,12 +320,14 @@
       osc.type = profile.type === 'bass' ? 'sawtooth' : 'square';
       osc.frequency.setValueAtTime(base, when);
       length = options.length || (profile.type === 'bass' ? 0.42 : 0.28);
-      connectVoice(osc, gain, when, length, padIndex);
+      connectVoice(osc, gain, when, padIndex);
       envelope(gain, when, length, 0.62);
       osc.start(when); osc.stop(when + length + 0.05);
       stopper = () => osc.stop();
     }
     state.activeSources.set(id, { gain, stopper });
+    state.scopeEnergy = 1;
+    drawSyntheticWave(padIndex);
     window.setTimeout(() => state.activeSources.delete(id), Math.ceil((length + 0.15) * 1000));
   }
 
@@ -278,9 +344,11 @@
     const when = immediate ? ctx.currentTime + 0.006 : nextQuantizedTime();
     playEnginePad(index, when, options);
     window.setTimeout(() => flashPad(pad), Math.max(0, (when - ctx.currentTime) * 1000));
+    state.selectedPad = index;
     state.lastPad = { machine: MACHINE, index, label: pad.textContent.trim(), at: new Date().toISOString() };
     saveSession();
     updateReadouts();
+    updateSampleStatus();
     if (navigator.vibrate) navigator.vibrate(12);
   }
 
@@ -355,7 +423,7 @@
   function serializeState() {
     return {
       bpm: state.bpm, quantize: state.quantize, choke: state.choke, swing: state.swing, volume: state.volume,
-      running: state.running, lastPad: state.lastPad, xy: state.xy, macros: state.macros, pattern: state.pattern,
+      running: state.running, lastPad: state.lastPad, selectedPad: state.selectedPad, xy: state.xy, macros: state.macros, pattern: state.pattern,
       activeClips: Array.from(state.activeClips), machine: MACHINE, profile: profile.mode, updatedAt: new Date().toISOString()
     };
   }
@@ -373,7 +441,7 @@
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
       if (!saved) return;
-      ['bpm', 'quantize', 'choke', 'swing', 'volume', 'lastPad', 'xy', 'macros'].forEach((key) => { if (saved[key] !== undefined) state[key] = saved[key]; });
+      ['bpm', 'quantize', 'choke', 'swing', 'volume', 'lastPad', 'selectedPad', 'xy', 'macros'].forEach((key) => { if (saved[key] !== undefined) state[key] = saved[key]; });
       if (Array.isArray(saved.pattern)) state.pattern = saved.pattern;
       if (Array.isArray(saved.activeClips)) state.activeClips = new Set(saved.activeClips);
     } catch (error) {}
@@ -392,6 +460,7 @@
         <span><strong>Step</strong><b data-readout="step">--</b></span>
         <span><strong>Q</strong><b data-readout="quantize">${state.quantize}</b></span>
       </div>
+      <canvas class="signal-scope" width="900" height="140" aria-label="Live waveform monitor"></canvas>
       <div class="transport-controls">
         <button class="transport-btn" type="button" data-action="play">PLAY</button>
         <button class="transport-btn" type="button" data-action="stop">STOP</button>
@@ -430,6 +499,7 @@
       if (event.target.dataset.control === 'quantize') state.quantize = event.target.value;
       saveSession(); updateReadouts();
     });
+    drawScopeLoop();
   }
 
   function injectMachineModule() {
@@ -443,6 +513,7 @@
     else if (profile.type === 'fx') grid.after(makeFXModule());
     else if (['synth', 'bass', 'chord', 'fm'].includes(profile.type)) grid.after(makeKeysModule());
     else if (profile.type === 'sample') grid.after(makeSamplerModule());
+    grid.after(makeRecorderBay());
   }
 
   function makeModule(title, body, hint) {
@@ -528,7 +599,7 @@
   function playXYTone() {
     ensureAudio();
     const freq = 90 + state.xy.x * 920;
-    playEnginePad(Math.round(state.xy.x * 7), ctx.currentTime + 0.004, { id: 'xy-latch', frequency: freq, length: state.xy.latch ? 1.2 : 0.18, layer: state.xy.latch });
+    playEnginePad(Math.round(state.xy.x * 7), ctx.currentTime + 0.004, { id: 'xy-latch', frequency: freq, length: state.xy.latch ? 1.2 : 0.18, layer: state.xy.latch, forceSynth: true });
   }
 
   function makeChopModule() {
@@ -540,7 +611,7 @@
       const action = event.target.closest('[data-chop]')?.dataset.chop;
       if (slice) { const step = Number(slice.dataset.step); triggerPad(step % Math.max(1, padEls.length), false, { frequency: profile.base + step * 24 }); }
       if (action === 'stutter') repeatBurst(2, 4);
-      if (action === 'reverse') triggerPad(5, false, { frequency: profile.base * 0.5, length: 0.45 });
+      if (action === 'reverse') triggerPad(5, false, { frequency: profile.base * 0.5, length: 0.45, rate: 0.6 });
       if (action === 'scatter') repeatBurst(0, 8);
     });
     return mod;
@@ -603,7 +674,7 @@
       if (key) {
         const note = Number(key.dataset.note);
         if (state.activeClips.has(note)) state.activeClips.delete(note); else state.activeClips.add(note);
-        syncKeys(mod); triggerPad(note % Math.max(1, padEls.length), false, { frequency: profile.base * Math.pow(2, note / 12) }); saveSession();
+        syncKeys(mod); triggerPad(note % Math.max(1, padEls.length), false, { frequency: profile.base * Math.pow(2, note / 12), forceSynth: true }); saveSession();
       }
       if (action === 'arp') { startClock(); syncKeys(mod); }
       if (action === 'clear') { state.activeClips.clear(); syncKeys(mod); saveSession(); }
@@ -613,11 +684,79 @@
   function syncKeys(root = document) { root.querySelectorAll('.mini-key').forEach((key) => key.classList.toggle('armed', state.activeClips.has(Number(key.dataset.note)))); }
 
   function makeSamplerModule() {
-    const body = `<div class="sampler-drop"><strong>Sampler lane</strong><span>Use pads for one-shots now. Mic/drag-drop sample binding is staged next.</span></div>
-      <div class="module-actions"><button class="transport-btn" type="button" data-sampler="arm">ARM REC</button><button class="transport-btn" type="button" data-sampler="resample">RESAMPLE FX</button></div>`;
-    const mod = makeModule('sample assignment bay', body, 'This keeps the sampler architecture visible while the full recorder/assign flow gets wired safely.');
-    mod.addEventListener('click', (event) => { const action = event.target.closest('[data-sampler]')?.dataset.sampler; if (action === 'arm') event.target.classList.toggle('on'); if (action === 'resample') repeatBurst(2, 6); });
+    const body = `<div class="sampler-drop"><strong>Sampler lane</strong><span data-sample-status>Fallback synth active. Load a bank or record a pad.</span></div>
+      <div class="module-actions"><button class="transport-btn" type="button" data-sampler="load">LOAD BANK</button><button class="transport-btn" type="button" data-sampler="arm">ARM PAD</button><button class="transport-btn" type="button" data-sampler="resample">RESAMPLE FX</button></div>`;
+    const mod = makeModule('sample assignment bay', body, 'LOAD BANK preloads mapped audio when files exist. ARM PAD selects the next triggered pad as recorder target.');
+    mod.addEventListener('click', async (event) => {
+      const action = event.target.closest('[data-sampler]')?.dataset.sampler;
+      if (action === 'load') { event.target.classList.add('on'); await loadSampleBank(); event.target.classList.remove('on'); updateSampleStatus(); }
+      if (action === 'arm') { state.selectedPad = state.lastPad?.index ?? state.selectedPad; event.target.classList.toggle('on'); updateSampleStatus(); }
+      if (action === 'resample') repeatBurst(2, 6);
+    });
+    updateSampleStatus(); return mod;
+  }
+
+  function makeRecorderBay() {
+    const body = `<div class="recorder-bay"><div><strong>Pad recorder</strong><span data-rec-status>Ready. Select pad ${state.selectedPad + 1}.</span></div><select data-rec-pad>${padEls.map((pad, i) => `<option value="${i}">${i + 1} · ${pad.textContent.trim()}</option>`).join('')}</select></div>
+      <div class="module-actions"><button class="transport-btn" type="button" data-rec="record">REC PAD</button><button class="transport-btn" type="button" data-rec="play">PLAY PAD</button><button class="transport-btn" type="button" data-rec="clear">CLEAR PAD</button></div>`;
+    const mod = makeModule('mic-to-pad recorder', body, 'Records through the browser mic and assigns the take to the selected pad. Chrome/Android desktop works best.');
+    mod.classList.add('recorder-module');
+    const select = mod.querySelector('[data-rec-pad]');
+    select.value = state.selectedPad;
+    select.addEventListener('change', () => { state.selectedPad = Number(select.value); saveSession(); updateSampleStatus(); });
+    mod.addEventListener('click', async (event) => {
+      const action = event.target.closest('[data-rec]')?.dataset.rec;
+      if (action === 'record') await toggleRecord(event.target);
+      if (action === 'play') triggerPad(state.selectedPad, true);
+      if (action === 'clear') { state.recordedBuffers.delete(state.selectedPad); updateSampleStatus(); saveSession(); }
+    });
     return mod;
+  }
+
+  async function toggleRecord(button) {
+    ensureAudio();
+    if (state.recorder.active) {
+      state.recorder.mediaRecorder?.stop();
+      button.textContent = 'REC PAD';
+      button.classList.remove('on');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      state.recorder.stream = stream;
+      state.recorder.chunks = [];
+      const mediaRecorder = new MediaRecorder(stream);
+      state.recorder.mediaRecorder = mediaRecorder;
+      mediaRecorder.ondataavailable = (event) => { if (event.data.size) state.recorder.chunks.push(event.data); };
+      mediaRecorder.onstop = async () => {
+        state.recorder.active = false;
+        stream.getTracks().forEach((track) => track.stop());
+        try {
+          const blob = new Blob(state.recorder.chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+          const data = await blob.arrayBuffer();
+          const buffer = await ctx.decodeAudioData(data.slice(0));
+          state.recordedBuffers.set(state.selectedPad, buffer);
+          drawWaveform(buffer, state.selectedPad);
+          updateSampleStatus(`Recorded pad ${state.selectedPad + 1}`);
+          flashPad(padEls[state.selectedPad], 420);
+        } catch (error) { updateSampleStatus('Recording decode failed. Try a shorter take.'); }
+      };
+      state.recorder.active = true;
+      button.textContent = 'STOP REC';
+      button.classList.add('on');
+      mediaRecorder.start();
+      updateSampleStatus(`Recording pad ${state.selectedPad + 1}...`);
+    } catch (error) { updateSampleStatus('Mic blocked or unavailable.'); }
+  }
+
+  function updateSampleStatus(message = null) {
+    const text = message || `${state.recordedBuffers.size} recorded · ${state.sampleBuffers.size} loaded · target pad ${state.selectedPad + 1}`;
+    document.querySelectorAll('[data-sample-status],[data-rec-status]').forEach((el) => { el.textContent = text; });
+    document.querySelectorAll('[data-rec-pad]').forEach((select) => { select.value = state.selectedPad; });
+    padEls.forEach((pad, index) => {
+      pad.classList.toggle('sample-loaded', state.sampleBuffers.has(index));
+      pad.classList.toggle('sample-recorded', state.recordedBuffers.has(index));
+    });
   }
 
   function flashSave(button) { const old = button.textContent; button.textContent = 'SAVED'; button.classList.add('on'); setTimeout(() => { button.textContent = old; button.classList.remove('on'); }, 700); }
@@ -642,6 +781,83 @@
     const volume = document.querySelector('[data-control="volume"]'); if (volume) volume.value = state.volume;
     const bpm = document.querySelector('[data-control="bpm"]'); if (bpm) bpm.value = state.bpm;
     document.body.classList.toggle('clock-running', state.running);
+  }
+
+  function drawWaveform(buffer, padIndex = 0) {
+    const canvas = document.querySelector('.signal-scope');
+    if (!canvas || !buffer) return;
+    const context = canvas.getContext('2d');
+    const data = buffer.getChannelData(0);
+    const step = Math.max(1, Math.floor(data.length / canvas.width));
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#071019';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e5ff';
+    context.lineWidth = 3;
+    context.beginPath();
+    for (let x = 0; x < canvas.width; x += 1) {
+      let min = 1;
+      let max = -1;
+      for (let j = 0; j < step; j += 1) {
+        const value = data[(x * step) + j] || 0;
+        min = Math.min(min, value);
+        max = Math.max(max, value);
+      }
+      context.moveTo(x, (1 + min) * canvas.height / 2);
+      context.lineTo(x, (1 + max) * canvas.height / 2);
+    }
+    context.stroke();
+    context.fillStyle = 'rgba(255,255,255,.82)';
+    context.font = '700 24px Arial Narrow, Arial, sans-serif';
+    context.fillText(`PAD ${padIndex + 1}`, 18, 34);
+  }
+
+  function drawSyntheticWave(padIndex = 0) {
+    const canvas = document.querySelector('.signal-scope');
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    context.clearRect(0, 0, width, height);
+    context.fillStyle = '#071019';
+    context.fillRect(0, 0, width, height);
+    context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e5ff';
+    context.lineWidth = 3;
+    context.beginPath();
+    for (let x = 0; x < width; x += 6) {
+      const y = height / 2 + Math.sin((x * 0.025) + padIndex) * (12 + padIndex * 4) + Math.sin(x * 0.11) * 9;
+      if (x === 0) context.moveTo(x, y); else context.lineTo(x, y);
+    }
+    context.stroke();
+  }
+
+  function drawScopeLoop() {
+    const canvas = document.querySelector('.signal-scope');
+    if (!canvas || canvas.dataset.looping) return;
+    canvas.dataset.looping = 'true';
+    const context = canvas.getContext('2d');
+    const bins = new Uint8Array(128);
+    const draw = () => {
+      if (analyser && ctx) {
+        analyser.getByteTimeDomainData(bins);
+        context.fillStyle = 'rgba(7,16,25,.22)';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e5ff';
+        context.lineWidth = 2;
+        context.beginPath();
+        bins.forEach((value, i) => {
+          const x = (i / (bins.length - 1)) * canvas.width;
+          const y = (value / 255) * canvas.height;
+          if (i === 0) context.moveTo(x, y); else context.lineTo(x, y);
+        });
+        context.stroke();
+      } else if (state.scopeEnergy > 0) {
+        state.scopeEnergy *= 0.96;
+      }
+      requestAnimationFrame(draw);
+    };
+    drawSyntheticWave(0);
+    requestAnimationFrame(draw);
   }
 
   function bindKeyboard() {
@@ -680,8 +896,9 @@
   }
 
   function boot() {
+    if (!isMachinePage) return;
     loadSession(); hydratePads(); injectTransport(); injectMachineModule(); bindKeyboard(); initMidi(); updateReadouts();
-    syncSequencerUI(); syncClips(); syncKeys(); syncMacros();
+    syncSequencerUI(); syncClips(); syncKeys(); syncMacros(); updateSampleStatus(); loadSampleBank();
     document.body.classList.add('beargrid-core-ready');
   }
 
