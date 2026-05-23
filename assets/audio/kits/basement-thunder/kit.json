@@ -1,0 +1,16 @@
+{
+  "name": "MATTBEAR - Basement Thunder",
+  "version": "0.1.0",
+  "description": "Drop-in BearGrid sample-bank manifest. Add WAV files beside this JSON using the filenames below and the shared engine will preload them automatically.",
+  "root": "./",
+  "pads": [
+    { "label": "Kick", "file": "kick.wav", "type": "oneshot", "choke": "drums" },
+    { "label": "Snare", "file": "snare.wav", "type": "oneshot", "choke": "drums" },
+    { "label": "Hat", "file": "hat.wav", "type": "oneshot", "choke": "drums" },
+    { "label": "Clap", "file": "clap.wav", "type": "oneshot", "choke": "drums" },
+    { "label": "Perc", "file": "perc.wav", "type": "oneshot", "choke": "drums" },
+    { "label": "Bass", "file": "bass.wav", "type": "oneshot", "choke": "bass" },
+    { "label": "Vox", "file": "vox.wav", "type": "oneshot", "choke": "vox" },
+    { "label": "FX", "file": "fx.wav", "type": "oneshot", "choke": "fx" }
+  ]
+}
