@@ -1,4 +1,4 @@
-const CACHE='beargrid-v1.2.0-pad-memory';
+const CACHE='beargrid-v1.2.1-quantized-pad-memory';
 const ASSETS=[
   './',
   './index.html',
