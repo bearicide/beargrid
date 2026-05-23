@@ -4,22 +4,52 @@
   const machine = document.body.dataset.machine || 'beargrid-machine';
   const pads = Array.from(document.querySelectorAll('.pad'));
   const panel = document.querySelector('.panel');
-  if (!panel || !pads.length) return;
+  if (!panel || !pads.length || !window.indexedDB) return;
 
   const dbName = 'beargrid-pad-memory';
   const storeName = 'pads';
+  const sessionKey = `mattbear-beargrid-session-${machine}`;
   const buffers = new Map();
+  const activeSources = new Map();
   let ctx;
   let master;
+  let sharedStatus;
+
+  function readSession() {
+    try { return JSON.parse(localStorage.getItem(sessionKey) || '{}') || {}; }
+    catch (error) { return {}; }
+  }
 
   function audio() {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain();
-      master.gain.value = 0.9;
+      master.gain.value = Number(readSession().volume ?? 0.78);
       master.connect(ctx.destination);
     }
     if (ctx.state === 'suspended') ctx.resume();
+    const volume = Number(readSession().volume ?? 0.78);
+    if (master) master.gain.setTargetAtTime(volume, ctx.currentTime, 0.02);
+  }
+
+  function beatSeconds() {
+    const bpm = Number(readSession().bpm || document.querySelector('[data-readout="bpm"]')?.textContent || 120);
+    return 60 / Math.max(30, Math.min(260, bpm));
+  }
+
+  function quantizeSeconds() {
+    const q = readSession().quantize || document.querySelector('[data-readout="quantize"]')?.textContent || '1/4';
+    const beat = beatSeconds();
+    if (q === '1/16') return beat / 4;
+    if (q === '1/8') return beat / 2;
+    return beat;
+  }
+
+  function nextGridTime() {
+    audio();
+    const grid = quantizeSeconds();
+    const now = ctx.currentTime;
+    return Math.ceil((now + 0.015) / grid) * grid;
   }
 
   function key(index) {
@@ -71,17 +101,19 @@
   function makeUi() {
     const box = document.createElement('section');
     box.className = 'machine-module pad-memory';
-    box.innerHTML = `<div class="module-head"><strong>Pad memory</strong><span>LOCAL</span></div>
-      <div class="pad-memory-box"><strong>Choose a local sound</strong><span>Saved to this browser and overrides the selected pad.</span></div>
+    box.innerHTML = `<div class="module-head"><strong>Pad memory</strong><span>QUANTIZED LOCAL</span></div>
+      <div class="pad-memory-box"><strong>Choose a local sound</strong><span>Saved in this browser. Playback follows the BearGrid quantize grid and choke setting.</span></div>
       <div class="pad-memory-row"><select data-pad-memory-target>${pads.map((pad, i) => `<option value="${i}">${i + 1} · ${pad.textContent.trim()}</option>`).join('')}</select><input data-pad-memory-file type="file" accept="audio/*"></div>
-      <div class="module-actions"><button class="transport-btn" type="button" data-pad-memory="play">PLAY</button><button class="transport-btn" type="button" data-pad-memory="clear">CLEAR</button></div>
-      <p class="machine-hint" data-pad-memory-status>Ready for local pad samples.</p>`;
+      <div class="module-actions"><button class="transport-btn" type="button" data-pad-memory="play">QUEUE / PLAY</button><button class="transport-btn" type="button" data-pad-memory="clear">CLEAR</button></div>
+      <p class="machine-hint" data-pad-memory-status>Ready for quantized local pad samples.</p>`;
     const status = panel.querySelector('.status');
     if (status) status.before(box); else panel.appendChild(box);
+    sharedStatus = box.querySelector('[data-pad-memory-status]');
     return box;
   }
 
   function status(text) {
+    if (sharedStatus) sharedStatus.textContent = text;
     document.querySelectorAll('[data-pad-memory-status]').forEach((el) => { el.textContent = text; });
   }
 
@@ -93,31 +125,68 @@
       buffers.set(index, decoded);
       await save(index, arrayBuffer, file.name);
       mark();
-      status(`Loaded ${file.name} on pad ${index + 1}`);
-      play(index);
+      status(`Loaded ${file.name} on pad ${index + 1}. Queued to grid.`);
+      play(index, false);
     } catch (error) {
       status('That sound could not be decoded.');
     }
   }
 
-  function play(index) {
+  function stopSource(id) {
+    const item = activeSources.get(id);
+    if (!item) return;
+    try {
+      item.gain.gain.cancelScheduledValues(ctx.currentTime);
+      item.gain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.02);
+      setTimeout(() => { try { item.source.stop(); } catch (error) {} }, 70);
+    } catch (error) {}
+    activeSources.delete(id);
+  }
+
+  function chokeAll(exceptId = null) {
+    for (const id of Array.from(activeSources.keys())) {
+      if (id !== exceptId) stopSource(id);
+    }
+  }
+
+  function flash(index, when) {
+    const delay = Math.max(0, (when - ctx.currentTime) * 1000);
+    setTimeout(() => {
+      pads[index]?.classList.add('on');
+      pads[index]?.setAttribute('aria-pressed', 'true');
+      setTimeout(() => {
+        pads[index]?.classList.remove('on');
+        pads[index]?.setAttribute('aria-pressed', 'false');
+      }, 160);
+    }, delay);
+  }
+
+  function play(index, immediate = false) {
     const buffer = buffers.get(index);
     if (!buffer) {
       status(`No local sound on pad ${index + 1}`);
       return false;
     }
     audio();
+    const when = immediate ? ctx.currentTime + 0.006 : nextGridTime();
+    const id = `local-${index}`;
+    const session = readSession();
+    if (session.choke !== false) chokeAll(id);
+
     const source = ctx.createBufferSource();
     const gain = ctx.createGain();
+    const maxLength = Math.max(0.08, Math.min(buffer.duration, Math.max(quantizeSeconds(), 4)));
     source.buffer = buffer;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.9, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + Math.min(buffer.duration, 4));
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(0.9, when + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + maxLength);
     source.connect(gain).connect(master);
-    source.start();
-    source.stop(ctx.currentTime + Math.min(buffer.duration, 4.05));
-    pads[index]?.classList.add('on');
-    setTimeout(() => pads[index]?.classList.remove('on'), 160);
+    source.start(when, 0, maxLength);
+    source.stop(when + maxLength + 0.05);
+    activeSources.set(id, { source, gain });
+    setTimeout(() => activeSources.delete(id), Math.ceil((maxLength + 0.15) * 1000));
+    flash(index, when);
+    status(`Pad ${index + 1} queued on ${session.quantize || '1/4'} grid.`);
     return true;
   }
 
@@ -126,17 +195,17 @@
   }
 
   async function restore() {
-    audio();
     await Promise.all(pads.map(async (_, index) => {
       const item = await load(index);
       if (!item?.arrayBuffer) return;
       try {
+        audio();
         const decoded = await ctx.decodeAudioData(item.arrayBuffer.slice(0));
         buffers.set(index, decoded);
       } catch (error) {}
     }));
     mark();
-    if (buffers.size) status(`${buffers.size} local pad sound${buffers.size === 1 ? '' : 's'} restored.`);
+    if (buffers.size) status(`${buffers.size} quantized local pad sound${buffers.size === 1 ? '' : 's'} restored.`);
   }
 
   function styles() {
@@ -159,9 +228,10 @@
   ui.addEventListener('click', async (event) => {
     const action = event.target.closest('[data-pad-memory]')?.dataset.padMemory;
     const index = Number(select.value);
-    if (action === 'play') play(index);
+    if (action === 'play') play(index, false);
     if (action === 'clear') {
       buffers.delete(index);
+      stopSource(`local-${index}`);
       await remove(index);
       mark();
       status(`Cleared pad ${index + 1}`);
@@ -173,7 +243,7 @@
       if (!buffers.has(index)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      play(index);
+      play(index, false);
     }, true);
   });
 
