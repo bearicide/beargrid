@@ -1,13 +1,14 @@
 {
   "name": "MATTBEAR - BearGrid Machines",
   "short_name": "BearGrid",
-  "description": "Browser-native cyber instrument system by MATTBEAR.",
+  "description": "Browser-native MATTBEAR music machine grid with WebAudio pads, MIDI-ready controls, local sample loading, and browser pad memory.",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#07090f",
   "theme_color": "#07090f",
   "orientation": "portrait-primary",
-  "categories": ["music","entertainment","productivity"],
+  "categories": ["music", "entertainment", "productivity", "utilities"],
   "icons": [
     {
       "src": "assets/tiles/drum-machine.png",
