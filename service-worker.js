@@ -1,4 +1,4 @@
-const CACHE='beargrid-v1.2.2-virtual-pad-bank';
+const CACHE='beargrid-v1.2.3-virtual-pad-bank-indexed';
 const DB_NAME='beargrid-pad-memory';
 const STORE_NAME='pads';
 const ASSETS=[
@@ -61,15 +61,17 @@ function inferMachine(event){
 
 async function virtualKit(event){
   const machine=inferMachine(event);
-  const pads=[];
+  const pads=Array.from({length:16},()=>null);
+  let found=false;
   for(let index=0; index<16; index+=1){
     const item=await dbGet(`${machine}-${index}`);
     if(item&&item.arrayBuffer){
       const label=(item.name||`Local ${index+1}`).replace(/\.[a-z0-9]+$/i,'').slice(0,24);
-      pads.push({ label, file:`local-pad__${machine}__${index}` });
+      pads[index]={ label, file:`local-pad__${machine}__${index}` };
+      found=true;
     }
   }
-  if(!pads.length) return null;
+  if(!found) return null;
   return new Response(JSON.stringify({ name:`${machine} local pad memory`, pads }),{
     headers:{ 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' }
   });
@@ -83,7 +85,7 @@ async function virtualPadFile(url){
   const item=await dbGet(`${machine}-${index}`);
   if(!item||!item.arrayBuffer) return null;
   return new Response(item.arrayBuffer.slice(0),{
-    headers:{ 'Content-Type':'audio/*', 'Cache-Control':'no-store' }
+    headers:{ 'Content-Type':item.type||'application/octet-stream', 'Cache-Control':'no-store' }
   });
 }
 
